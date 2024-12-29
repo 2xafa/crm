@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - backend
+
+  api-gateway:
+    build: ./api-gateway
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - JWT_SECRET=your-secret-key
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - CUSTOMER_SERVICE_URL=http://customer-service:3002
+      - SALES_SERVICE_URL=http://sales-service:3003
+    depends_on:
+      - auth-service
+      - customer-service
+      - sales-service
+    networks:
+      - backend
+
+  auth-service:
+    build: ./auth-service
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - JWT_SECRET=your-secret-key
+      - MONGODB_URI=mongodb://mongodb:27017/auth-service
+    depends_on:
+      - mongodb
+    networks:
+      - backend
+
+  customer-service:
+    build: ./customer-service
+    ports:
+      - "3002:3002"
+    environment:
+      - NODE_ENV=production
+      - JWT_SECRET=your-secret-key
+      - MONGODB_URI=mongodb://mongodb:27017/customer-service
+    depends_on:
+      - mongodb
+    networks:
+      - backend
+
+  sales-service:
+    build: ./sales-service
+    ports:
+      - "3003:3003"
+    environment:
+      - NODE_ENV=production
+      - JWT_SECRET=your-secret-key
+      - MONGODB_URI=mongodb://mongodb:27017/sales-service
+    depends_on:
+      - mongodb
+    networks:
+      - backend
+
+  client:
+    build: ./client
+    ports:
+      - "80:80"
+    environment:
+      - REACT_APP_API_URL=http://localhost:3000/api
+    depends_on:
+      - api-gateway
+    networks:
+      - frontend
+      - backend
+
+networks:
+  frontend:
+  backend:
+
+volumes:
+  mongodb_data:
